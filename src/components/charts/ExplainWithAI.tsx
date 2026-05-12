@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTypewriter } from "@/hooks";
+import { useCivicStore } from "@/store";
 
 interface ExplainWithAIProps {
   chartType: string;
@@ -15,6 +16,7 @@ export default function ExplainWithAI({ chartType, dataDescription }: ExplainWit
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { displayText, isComplete } = useTypewriter(explanation || "", 15, 200);
+  const { citizenMode, selectedLanguage } = useCivicStore();
 
   const handleExplain = async () => {
     if (explanation) {
@@ -32,6 +34,8 @@ export default function ExplainWithAI({ chartType, dataDescription }: ExplainWit
         body: JSON.stringify({
           prompt: `Explain this ${chartType} chart. ${dataDescription}`,
           type: "graph",
+          citizenMode,
+          language: selectedLanguage,
         }),
       });
       const data = await res.json();
@@ -54,7 +58,7 @@ export default function ExplainWithAI({ chartType, dataDescription }: ExplainWit
         whileTap={{ scale: 0.98 }}
       >
         <Sparkles size={12} />
-        {isOpen ? "HIDE AI EXPLANATION" : "EXPLAIN WITH AI"}
+        {isOpen ? "HIDE AI EXPLANATION" : citizenMode ? "EXPLAIN SIMPLY" : "EXPLAIN WITH AI"}
       </motion.button>
 
       {isOpen && (
@@ -68,7 +72,7 @@ export default function ExplainWithAI({ chartType, dataDescription }: ExplainWit
             <div className="flex items-center gap-2">
               <Loader2 size={14} className="animate-spin text-ai-purple" />
               <span className="font-mono text-[10px] tracking-wider">
-                AI ANALYZING CHART DATA...
+                {citizenMode ? "SIMPLIFYING FOR YOU..." : "AI ANALYZING CHART DATA..."}
               </span>
             </div>
           ) : (

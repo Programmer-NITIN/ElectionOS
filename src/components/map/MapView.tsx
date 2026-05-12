@@ -64,7 +64,8 @@ function MapViewClient({
         import("leaflet/dist/leaflet.css");
 
         // Fix default marker icons
-        delete (leaflet.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
         leaflet.Icon.Default.mergeOptions({
           iconRetinaUrl:
             "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",

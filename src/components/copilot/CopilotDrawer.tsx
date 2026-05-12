@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, Send, X, Zap } from "lucide-react";
+import { Sparkles, Send, X, Zap, Mic, MicOff } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useUIStore, useAIStore } from "@/store";
+import { useUIStore, useAIStore, useCivicStore } from "@/store";
+import { useVoiceInput } from "@/hooks";
 import { cn } from "@/lib/utils";
 
 const suggestedQuestions = [
@@ -17,12 +18,27 @@ const suggestedQuestions = [
 export default function CopilotDrawer() {
   const { copilotOpen, setCopilotOpen } = useUIStore();
   const { copilotMessages, addCopilotMessage, isLoading, setLoading } = useAIStore();
+  const { citizenMode, selectedLanguage } = useCivicStore();
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { transcript, isListening, startListening, stopListening, supported } = useVoiceInput();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [copilotMessages]);
+
+  // Auto-submit when voice transcript is received
+  useEffect(() => {
+    if (transcript) {
+      setInput(transcript);
+      // Auto-send after a brief delay so user can see what was transcribed
+      const timer = setTimeout(() => {
+        handleSend(transcript);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcript]);
 
   const handleSend = async (message?: string) => {
     const query = message || input;
@@ -40,6 +56,8 @@ export default function CopilotDrawer() {
           prompt: query,
           type: "copilot",
           context: "Indian elections 2024, constituencies, voter trends, issue tracking",
+          citizenMode,
+          language: selectedLanguage,
         }),
       });
       const data = await res.json();
@@ -47,7 +65,7 @@ export default function CopilotDrawer() {
     } catch {
       addCopilotMessage({
         role: "ai",
-        content: "Analysis suggests multiple factors at play. The primary driver appears to be shifting demographic patterns combined with issue-specific mobilization in key constituencies.",
+        content: "Intelligence analysis is temporarily unavailable. Please try again in a moment.",
       });
     } finally {
       setLoading(false);
@@ -88,7 +106,7 @@ export default function CopilotDrawer() {
                 Election Copilot
               </h3>
               <p className="font-mono text-[10px] text-on-surface-variant tracking-wider">
-                AI INTELLIGENCE ASSISTANT
+                {citizenMode ? "CITIZEN MODE · SIMPLE ANSWERS" : "AI INTELLIGENCE ASSISTANT"}
               </p>
             </div>
           </div>
@@ -100,6 +118,17 @@ export default function CopilotDrawer() {
           </button>
         </div>
 
+        {/* Citizen Mode Banner */}
+        {citizenMode && (
+          <motion.div
+            className="mx-5 mt-3 px-4 py-2.5 rounded-lg bg-primary-fixed/10 border border-primary-fixed/20 text-primary-fixed text-xs font-mono flex items-center gap-2"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            🧑‍🎓 You&apos;re in Citizen Mode — everything is explained simply.
+          </motion.div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {copilotMessages.length === 0 && (
@@ -107,10 +136,12 @@ export default function CopilotDrawer() {
               <div className="text-center py-8">
                 <Sparkles size={32} className="text-ai-purple mx-auto mb-3" />
                 <h4 className="font-geist text-lg text-on-surface mb-2">
-                  Ask anything about elections
+                  {citizenMode ? "Ask me anything about elections!" : "Ask anything about elections"}
                 </h4>
                 <p className="text-on-surface-variant text-sm">
-                  I can analyze constituencies, explain trends, and provide strategic insights.
+                  {citizenMode
+                    ? "I'll explain things in simple, easy-to-understand language."
+                    : "I can analyze constituencies, explain trends, and provide strategic insights."}
                 </p>
               </div>
 
@@ -154,7 +185,7 @@ export default function CopilotDrawer() {
                   </span>
                 </div>
               )}
-              <p className="text-sm leading-relaxed">{msg.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             </motion.div>
           ))}
 
@@ -180,9 +211,26 @@ export default function CopilotDrawer() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask the AI Copilot..."
+              placeholder={citizenMode ? "Ask me anything..." : "Ask the AI Copilot..."}
               className="flex-1 bg-transparent text-on-surface text-sm focus:outline-none focus:ring-0 border-none placeholder:text-on-surface-variant/50"
             />
+
+            {/* Voice Input Button */}
+            {supported && (
+              <button
+                onClick={isListening ? stopListening : startListening}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  isListening
+                    ? "bg-red-500/20 text-red-400 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.5)]"
+                    : "text-on-surface-variant hover:text-primary-fixed hover:bg-surface-variant/30"
+                )}
+                title={isListening ? "Stop listening" : "Voice input"}
+              >
+                {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+              </button>
+            )}
+
             <button
               onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}

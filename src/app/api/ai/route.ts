@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PROMPTS } from "@/lib/ai/prompts";
+import { buildCivicPrompt } from "@/lib/ai/civic-prompt";
 
 const MOCK_RESPONSES: Record<string, string> = {
   default:
@@ -15,35 +16,49 @@ const MOCK_RESPONSES: Record<string, string> = {
     "National sentiment is trending toward economic pragmatism in rural sectors. Analyzing 4.2M social inputs and 800 recent field interviews indicates a sharp divergence from urban cultural focus. Healthcare anxiety is peaking in the Rust Belt.",
   copilot:
     "Based on real-time election intelligence, this trend is driven by strategic voting among key demographics. We are seeing a notable consolidation of votes against incumbents in volatile zones, largely influenced by local economic factors and unemployment narratives.",
+  factcheck:
+    '{"verdict":"UNVERIFIABLE","confidence":50,"evidence":["Unable to verify against live data at this time","Please check the Election Commission of India official portal"],"context":"This claim requires verification against official ECI records. The AI fact-checker is currently unavailable.","corrected_claim":""}',
+  scenario:
+    '{"nda_seats":293,"india_seats":234,"others_seats":16,"nda_change":0,"india_change":0,"key_swings":["No change from baseline"],"narrative":"With no adjustments made, the result remains the same as the actual 2024 outcome.","confidence":"HIGH"}',
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, context, type } = await req.json();
+    const { prompt, context, type, citizenMode, language } = await req.json();
 
     const apiKey = process.env.GOOGLE_AI_API_KEY;
 
     if (apiKey) {
       try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Using gemini-1.5-flash for speed and reliability, avoiding 2.0 experimental rate limits
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        let fullPrompt = prompt;
+        let basePrompt = prompt;
 
         if (type === "copilot" && PROMPTS.copilotResponse) {
-          fullPrompt = PROMPTS.copilotResponse(prompt, context || "Current dashboard data and trends.");
+          basePrompt = PROMPTS.copilotResponse(prompt, context || "Current dashboard data and trends.");
         } else if (type === "constituency" && PROMPTS.constituencySummary) {
-          fullPrompt = PROMPTS.constituencySummary("Selected Constituency", "India", context || prompt);
+          basePrompt = PROMPTS.constituencySummary("Selected Constituency", "India", context || prompt);
         } else if (type === "graph" && PROMPTS.graphExplanation) {
-          fullPrompt = PROMPTS.graphExplanation("Data Trend", context || prompt);
+          basePrompt = PROMPTS.graphExplanation("Data Trend", context || prompt);
         } else if (type === "seatflip" && PROMPTS.seatFlipExplanation) {
-          fullPrompt = PROMPTS.seatFlipExplanation("Flipped Seat", context || prompt);
+          basePrompt = PROMPTS.seatFlipExplanation("Flipped Seat", context || prompt);
         } else if (type === "mood" && PROMPTS.moodOfNation) {
-          fullPrompt = PROMPTS.moodOfNation(context || prompt);
+          basePrompt = PROMPTS.moodOfNation(context || prompt);
+        } else if (type === "factcheck") {
+          basePrompt = prompt; // Already fully constructed on the client
+        } else if (type === "scenario") {
+          basePrompt = prompt; // Already fully constructed on the client
         } else {
-          fullPrompt = context ? `${prompt}\n\nContext: ${context}` : prompt;
+          basePrompt = context ? `${prompt}\n\nContext: ${context}` : prompt;
         }
+
+        // Apply citizen mode + language augmentation
+        const fullPrompt = buildCivicPrompt(
+          basePrompt,
+          citizenMode || false,
+          language || "en"
+        );
 
         const result = await model.generateContent(fullPrompt);
         const response = result.response.text();
@@ -56,8 +71,7 @@ export async function POST(req: NextRequest) {
 
     // Fallback to mock responses
     const mockType = type || "default";
-    const response =
-      MOCK_RESPONSES[mockType] || MOCK_RESPONSES.default;
+    const response = MOCK_RESPONSES[mockType] || MOCK_RESPONSES.default;
 
     // Simulate AI delay
     await new Promise((resolve) => setTimeout(resolve, 800));

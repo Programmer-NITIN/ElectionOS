@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Radio, MapPin, Calculator, Clock } from "lucide-react";
+import { Radio, MapPin, Calculator, Search, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const mobileNavItems = [
-  { href: "/dashboard", label: "Live Pulse", icon: Radio },
-  { href: "/seat-flip", label: "Swing States", icon: MapPin },
+  { href: "/dashboard", label: "Pulse", icon: Radio },
+  { href: "/seat-flip", label: "Swings", icon: MapPin },
   { href: "/mood", label: "Mood", icon: Calculator },
-  { href: "/feed", label: "Timeline", icon: Clock },
+  { href: "/fact-check", label: "Verify", icon: Search },
+  { href: "/simulator", label: "What-If", icon: FlaskConical },
 ];
 
 export default function MobileNav() {

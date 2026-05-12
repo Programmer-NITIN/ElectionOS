@@ -12,6 +12,8 @@ import {
   Settings,
   HelpCircle,
   Zap,
+  Search,
+  FlaskConical,
 } from "lucide-react";
 import { useUIStore } from "@/store";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,8 @@ const navItems = [
   { href: "/seat-flip", label: "SEAT FLIP", icon: ArrowLeftRight },
   { href: "/speech", label: "SPEECH ANALYZER", icon: Mic2 },
   { href: "/feed", label: "INSIGHT FEED", icon: Rss },
+  { href: "/fact-check", label: "FACT CHECK", icon: Search },
+  { href: "/simulator", label: "SIMULATOR", icon: FlaskConical },
 ];
 
 export default function Sidebar() {
