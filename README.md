@@ -5,6 +5,12 @@
   <p><strong>Next-Generation Civic Intelligence & AI-Powered Electoral Analytics Platform</strong></p>
   
   <p>
+    <a href="https://election-os-1072074659065.us-central1.run.app" target="_blank">
+      <img src="https://img.shields.io/badge/Live_Demo-00f5ff?style=for-the-badge&logo=googlecloud&logoColor=black&labelColor=black" alt="Live Demo" />
+    </a>
+  </p>
+
+  <p>
     <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" />
     <img src="https://img.shields.io/badge/Gemini-AI-blue?style=for-the-badge&logo=google" alt="Gemini AI" />
     <img src="https://img.shields.io/badge/Framer-Motion-purple?style=for-the-badge&logo=framer" alt="Framer Motion" />
@@ -96,11 +102,10 @@ We separate the data from the reasoning. While the data is deterministically ser
 
 ## ⚙️ Deployment & Setup (Hackathon Ready)
 
-The repository is hardened for immediate deployment to Vercel or Google Cloud Run.
+The repository is currently deployed and live on Google Cloud Run.
 
-### Prerequisites
-- Node.js 18.x or higher
-- A Google Gemini API Key
+### Live Production Environment
+👉 **[ElectionOS Live Demo](https://election-os-1072074659065.us-central1.run.app)**
 
 ### Local Installation
 
