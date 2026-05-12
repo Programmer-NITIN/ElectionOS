@@ -22,6 +22,31 @@ const MOCK_RESPONSES: Record<string, string> = {
     '{"nda_seats":293,"india_seats":234,"others_seats":16,"nda_change":0,"india_change":0,"key_swings":["No change from baseline"],"narrative":"With no adjustments made, the result remains the same as the actual 2024 outcome.","confidence":"HIGH"}',
 };
 
+// Retry helper for Gemini API rate limits
+async function callGeminiWithRetry(
+  model: ReturnType<InstanceType<typeof GoogleGenerativeAI>["getGenerativeModel"]>,
+  prompt: string,
+  maxRetries: number = 3
+): Promise<string> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (error: unknown) {
+      const err = error as { status?: number; message?: string };
+      if (err.status === 429 && attempt < maxRetries - 1) {
+        // Exponential backoff: 2s, 4s, 8s
+        const delay = Math.pow(2, attempt + 1) * 1000;
+        console.log(`Rate limited, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error("Max retries exhausted");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { prompt, context, type, citizenMode, language } = await req.json();
@@ -60,8 +85,7 @@ export async function POST(req: NextRequest) {
           language || "en"
         );
 
-        const result = await model.generateContent(fullPrompt);
-        const response = result.response.text();
+        const response = await callGeminiWithRetry(model, fullPrompt);
 
         return NextResponse.json({ response, source: "gemini" });
       } catch (aiError) {
